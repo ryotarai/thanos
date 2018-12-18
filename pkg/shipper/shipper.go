@@ -186,7 +186,10 @@ func (s *Shipper) sync(ctx context.Context, meta *block.Meta) (err error) {
 	// We only ship of the first compacted block level.
 	// TODO(bplotka): https://github.com/improbable-eng/thanos/issues/206
 	if meta.Compaction.Level > 1 {
-		return nil
+		if os.Getenv("IGNORE_UPLOAD_COMPACTION_LEVEL") == "" {
+			return nil
+		}
+		level.Info(s.logger).Log("msg", "upload though compaction level is more than 1", "level", meta.Compaction.Level)
 	}
 
 	// Check against bucket if the meta file for this block exists.
