@@ -108,6 +108,12 @@ build: check-git check-bzr go-mod-tidy $(PROMU)
 	@echo ">> building binaries $(GOBIN)"
 	@$(PROMU) build --prefix $(PREFIX)
 
+# build builds Thanos binary using `promu`.
+.PHONY: build-fast
+build-fast: check-git check-bzr $(PROMU)
+	@echo ">> building binaries $(GOBIN)"
+	@$(PROMU) build --prefix $(PREFIX)
+
 # crossbuild builds all binaries for all platforms.
 .PHONY: crossbuild
 crossbuild: $(PROMU)
