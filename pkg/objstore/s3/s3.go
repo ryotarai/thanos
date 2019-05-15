@@ -37,7 +37,7 @@ const DirDelim = "/"
 type Config struct {
 	Bucket          string            `yaml:"bucket"`
 	Endpoint        string            `yaml:"endpoint"`
-	Region        	string            `yaml:"region"`
+	Region          string            `yaml:"region"`
 	AccessKey       string            `yaml:"access_key"`
 	Insecure        bool              `yaml:"insecure"`
 	SignatureV2     bool              `yaml:"signature_version2"`
@@ -207,6 +207,8 @@ func ValidateForTests(conf Config) error {
 // Iter calls f for each entry in the given directory. The argument to f is the full
 // object name including the prefix of the inspected directory.
 func (b *Bucket) Iter(ctx context.Context, dir string, f func(string) error) error {
+	level.Debug(b.logger).Log("msg", "s3.Bucket.Iter is called", "dir", dir)
+
 	// Ensure the object name actually ends with a dir suffix. Otherwise we'll just iterate the
 	// object itself as one prefix item.
 	if dir != "" {
@@ -256,16 +258,22 @@ func (b *Bucket) getRange(ctx context.Context, name string, off, length int64) (
 
 // Get returns a reader for the given object name.
 func (b *Bucket) Get(ctx context.Context, name string) (io.ReadCloser, error) {
+	level.Debug(b.logger).Log("msg", "s3.Bucket.Get is called", "name", name)
+
 	return b.getRange(ctx, name, 0, -1)
 }
 
 // GetRange returns a new range reader for the given object name and range.
 func (b *Bucket) GetRange(ctx context.Context, name string, off, length int64) (io.ReadCloser, error) {
+	level.Debug(b.logger).Log("msg", "s3.Bucket.GetRange is called", "name", name, "off", off, "length", length)
+
 	return b.getRange(ctx, name, off, length)
 }
 
 // Exists checks if the given object exists.
 func (b *Bucket) Exists(ctx context.Context, name string) (bool, error) {
+	level.Debug(b.logger).Log("msg", "s3.Bucket.Exists is called", "name", name)
+
 	_, err := b.client.StatObject(b.name, name, minio.StatObjectOptions{})
 	if err != nil {
 		if b.IsObjNotFoundErr(err) {
@@ -293,6 +301,8 @@ func (b *Bucket) guessFileSize(name string, r io.Reader) int64 {
 
 // Upload the contents of the reader as an object into the bucket.
 func (b *Bucket) Upload(ctx context.Context, name string, r io.Reader) error {
+	level.Debug(b.logger).Log("msg", "s3.Bucket.Upload is called", "name", name)
+
 	// TODO(https://github.com/improbable-eng/thanos/issues/678): Remove guessing length when minio provider will support multipart upload without this.
 	fileSize := b.guessFileSize(name, r)
 
@@ -315,6 +325,8 @@ func (b *Bucket) Upload(ctx context.Context, name string, r io.Reader) error {
 
 // Delete removes the object with the given name.
 func (b *Bucket) Delete(ctx context.Context, name string) error {
+	level.Debug(b.logger).Log("msg", "s3.Bucket.Delete is called", "name", name)
+
 	return b.client.RemoveObject(b.name, name)
 }
 
