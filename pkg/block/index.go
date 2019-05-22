@@ -178,6 +178,8 @@ func ReadIndexCache(logger log.Logger, fn string) (
 	postings map[labels.Label]index.Range,
 	err error,
 ) {
+	level.Debug(logger).Log("msg", "reading index cache", "fn", fn)
+
 	f, err := os.Open(fn)
 	if err != nil {
 		return 0, nil, nil, nil, errors.Wrap(err, "open file")
