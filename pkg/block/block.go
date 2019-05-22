@@ -4,7 +4,6 @@ package block
 
 import (
 	"context"
-	"encoding/json"
 	"os"
 	"path"
 	"path/filepath"

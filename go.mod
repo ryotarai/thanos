@@ -20,6 +20,7 @@ require (
 	github.com/hashicorp/go-version v1.1.0
 	github.com/hashicorp/golang-lru v0.5.1
 	github.com/hashicorp/memberlist v0.1.0
+	github.com/json-iterator/go v0.0.0-20180612202835-f2b4162afba3
 	github.com/julienschmidt/httprouter v1.1.0 // indirect
 	github.com/lovoo/gcloud-opentracing v0.3.0
 	github.com/miekg/dns v1.1.4
