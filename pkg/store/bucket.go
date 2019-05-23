@@ -208,6 +208,8 @@ type BucketStore struct {
 	// samplesLimiter limits the number of samples per each Series() call.
 	samplesLimiter *Limiter
 	partitioner    partitioner
+
+	ignoredBlocks map[ulid.ULID]struct{}
 }
 
 // NewBucketStore creates a new bucket backed store that implements the store API against
@@ -256,6 +258,7 @@ func NewBucketStore(
 		),
 		samplesLimiter: NewLimiter(maxSampleCount, metrics.queriesDropped),
 		partitioner:    gapBasedPartitioner{maxGapSize: maxGapSize},
+		ignoredBlocks:  map[ulid.ULID]struct{}{},
 	}
 	s.metrics = metrics
 
@@ -339,15 +342,6 @@ func (s *BucketStore) SyncBlocks(ctx context.Context) error {
 		s.metrics.blockDrops.Inc()
 	}
 
-	for id, b := range s.blocks {
-		if b.meta.Thanos.Labels["prometheus_replica"] == "prometheus-mn1-k8s-1" {
-			level.Info(s.logger).Log("msg", "drop replica block", "block", id)
-			if err := s.removeBlock(id); err != nil {
-				level.Warn(s.logger).Log("msg", "error in dropping replica block", "block", id, "err", err)
-			}
-		}
-	}
-
 	return nil
 }
 
@@ -393,6 +387,11 @@ func (s *BucketStore) getBlock(id ulid.ULID) *bucketBlock {
 }
 
 func (s *BucketStore) addBlock(ctx context.Context, id ulid.ULID) (err error) {
+	if _, ok := s.ignoredBlocks[id]; ok {
+		level.Info(s.logger).Log("msg", "already ignored replica block", "block", id)
+		return nil
+	}
+
 	dir := filepath.Join(s.dir, id.String())
 
 	defer func() {
@@ -418,6 +417,13 @@ func (s *BucketStore) addBlock(ctx context.Context, id ulid.ULID) (err error) {
 	if err != nil {
 		return errors.Wrap(err, "new bucket block")
 	}
+
+	if b.meta.Thanos.Labels["prometheus_replica"] == "prometheus-mn1-k8s-1" {
+		level.Info(s.logger).Log("msg", "ignore replica block", "block", id)
+		s.ignoredBlocks[id] = struct{}{}
+		return nil
+	}
+
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 
