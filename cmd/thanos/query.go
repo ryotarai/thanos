@@ -94,6 +94,8 @@ func registerQuery(m map[string]setupFunc, app *kingpin.Application, name string
 	enableAutodownsampling := cmd.Flag("query.auto-downsampling", "Enable automatic adjustment (step / 5) to what source of data should be used in store gateways if no max_source_resolution param is specified.").
 		Default("false").Bool()
 
+	lookbackDelta := modelDuration(cmd.Flag("query.lookback-delta", "Lookback delta").Default("5m"))
+
 	enablePartialResponse := cmd.Flag("query.partial-response", "Enable partial response for queries if no partial_response param is specified.").
 		Default("true").Bool()
 
@@ -130,6 +132,7 @@ func registerQuery(m map[string]setupFunc, app *kingpin.Application, name string
 		}
 
 		promql.SetDefaultEvaluationInterval(time.Duration(*defaultEvaluationInterval))
+		promql.LookbackDelta = time.Duration(*lookbackDelta)
 
 		return runQuery(
 			g,
