@@ -208,6 +208,9 @@ type BucketStore struct {
 	// samplesLimiter limits the number of samples per each Series() call.
 	samplesLimiter *Limiter
 	partitioner    partitioner
+
+	minTimeOverride int64
+	maxTimeOverride int64
 }
 
 // NewBucketStore creates a new bucket backed store that implements the store API against
@@ -223,6 +226,8 @@ func NewBucketStore(
 	maxConcurrent int,
 	debugLogging bool,
 	blockSyncConcurrency int,
+	minTimeOverride int64,
+	maxTimeOverride int64,
 ) (*BucketStore, error) {
 	if logger == nil {
 		logger = log.NewNopLogger()
@@ -468,6 +473,14 @@ func (s *BucketStore) TimeRange() (mint, maxt int64) {
 			maxt = b.meta.MaxTime
 		}
 	}
+
+	if s.maxTimeOverride > 0 {
+		maxt = s.maxTimeOverride
+	}
+	if s.minTimeOverride > 0 {
+		mint = s.minTimeOverride
+	}
+
 	return mint, maxt
 }
 
