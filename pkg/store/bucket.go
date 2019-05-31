@@ -265,6 +265,8 @@ func NewBucketStore(
 		),
 		samplesLimiter:    NewLimiter(maxSampleCount, metrics.queriesDropped),
 		partitioner:       gapBasedPartitioner{maxGapSize: maxGapSize},
+		minTimeOverride:   minTimeOverride,
+		maxTimeOverride:   maxTimeOverride,
 		ignoredBlocks:     map[ulid.ULID]struct{}{},
 		ignoreBlockLabels: ignoreBlockLabels,
 	}
@@ -498,16 +500,6 @@ func (s *BucketStore) TimeRange() (mint, maxt int64) {
 			maxt = b.meta.MaxTime
 		}
 	}
-
-	if s.maxTimeOverride > 0 {
-		fmt.Printf("[DEBUG] Overriding max time\n")
-		maxt = s.maxTimeOverride
-	}
-	if s.minTimeOverride > 0 {
-		fmt.Printf("[DEBUG] Overriding min time\n")
-		mint = s.minTimeOverride
-	}
-	fmt.Printf("[DEBUG] maxt: %s, mint: %d\n", maxt, mint)
 
 	return mint, maxt
 }
