@@ -146,6 +146,9 @@ func runStore(
 
 		ignoreBlockLabelsMap := map[string]string{}
 		for _, kv := range strings.Split(ignoreBlockLabels, ",") {
+			if kv == "" {
+				continue
+			}
 			p := strings.SplitN(kv, "=", 2)
 			ignoreBlockLabelsMap[p[0]] = p[1]
 		}
