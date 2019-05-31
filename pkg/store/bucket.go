@@ -211,6 +211,9 @@ type BucketStore struct {
 
 	minTimeOverride int64
 	maxTimeOverride int64
+
+	ignoredBlocks     map[ulid.ULID]struct{}
+	ignoreBlockLabels map[string]string
 }
 
 // NewBucketStore creates a new bucket backed store that implements the store API against
@@ -228,6 +231,7 @@ func NewBucketStore(
 	blockSyncConcurrency int,
 	minTimeOverride int64,
 	maxTimeOverride int64,
+	ignoreBlockLabels map[string]string,
 ) (*BucketStore, error) {
 	if logger == nil {
 		logger = log.NewNopLogger()
@@ -259,8 +263,10 @@ func NewBucketStore(
 			maxConcurrent,
 			extprom.WrapRegistererWithPrefix("thanos_bucket_store_series_", reg),
 		),
-		samplesLimiter: NewLimiter(maxSampleCount, metrics.queriesDropped),
-		partitioner:    gapBasedPartitioner{maxGapSize: maxGapSize},
+		samplesLimiter:    NewLimiter(maxSampleCount, metrics.queriesDropped),
+		partitioner:       gapBasedPartitioner{maxGapSize: maxGapSize},
+		ignoredBlocks:     map[ulid.ULID]struct{}{},
+		ignoreBlockLabels: ignoreBlockLabels,
 	}
 	s.metrics = metrics
 
@@ -389,6 +395,10 @@ func (s *BucketStore) getBlock(id ulid.ULID) *bucketBlock {
 }
 
 func (s *BucketStore) addBlock(ctx context.Context, id ulid.ULID) (err error) {
+	if _, ok := s.ignoredBlocks[id]; ok {
+		return nil
+	}
+
 	dir := filepath.Join(s.dir, id.String())
 
 	defer func() {
@@ -414,6 +424,21 @@ func (s *BucketStore) addBlock(ctx context.Context, id ulid.ULID) (err error) {
 	if err != nil {
 		return errors.Wrap(err, "new bucket block")
 	}
+
+	if len(s.ignoreBlockLabels) > 0 {
+		ignore := true
+		for k, v := range s.ignoreBlockLabels {
+			if b.meta.Thanos.Labels[k] != v {
+				ignore = false
+			}
+		}
+		if ignore {
+			level.Info(s.logger).Log("msg", "ignoring a block", "block", id)
+			s.ignoredBlocks[id] = struct{}{}
+			return nil
+		}
+	}
+
 	s.mtx.Lock()
 	defer s.mtx.Unlock()
 

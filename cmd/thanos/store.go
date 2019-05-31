@@ -4,6 +4,7 @@ import (
 	"context"
 	"math"
 	"net"
+	"strings"
 	"time"
 
 	"github.com/go-kit/kit/log"
@@ -53,6 +54,7 @@ func registerStore(m map[string]setupFunc, app *kingpin.Application, name string
 
 	minTimeOverride := cmd.Flag("store.min-time-override", "Min time override").Default("0").Int64()
 	maxTimeOverride := cmd.Flag("store.max-time-override", "Max time override").Default("0").Int64()
+	ignoreBlockLabels := cmd.Flag("ignore-block-labels", "Labels to ignore blocks (key=value,key=value)").Default("").String()
 
 	m[name] = func(g *run.Group, logger log.Logger, reg *prometheus.Registry, tracer opentracing.Tracer, debugLogging bool) error {
 		peer, err := newPeerFn(logger, reg, false, "", false)
@@ -82,6 +84,7 @@ func registerStore(m map[string]setupFunc, app *kingpin.Application, name string
 			*blockSyncConcurrency,
 			*minTimeOverride,
 			*maxTimeOverride,
+			*ignoreBlockLabels,
 		)
 	}
 }
@@ -110,6 +113,7 @@ func runStore(
 	blockSyncConcurrency int,
 	minTimeOverride int64,
 	maxTimeOverride int64,
+	ignoreBlockLabels string,
 ) error {
 	{
 		confContentYaml, err := objStoreConfig.Content()
@@ -140,6 +144,12 @@ func runStore(
 			return errors.Wrap(err, "create index cache")
 		}
 
+		ignoreBlockLabelsMap := map[string]string{}
+		for _, kv := range strings.Split(ignoreBlockLabels, ",") {
+			p := strings.SplitN(kv, "=", 2)
+			ignoreBlockLabelsMap[p[0]] = p[1]
+		}
+
 		bs, err := store.NewBucketStore(
 			logger,
 			reg,
@@ -153,6 +163,7 @@ func runStore(
 			blockSyncConcurrency,
 			minTimeOverride,
 			maxTimeOverride,
+			ignoreBlockLabelsMap,
 		)
 		if err != nil {
 			return errors.Wrap(err, "create object storage store")
