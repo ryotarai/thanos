@@ -339,15 +339,6 @@ func (s *BucketStore) SyncBlocks(ctx context.Context) error {
 		s.metrics.blockDrops.Inc()
 	}
 
-	for id, b := range s.blocks {
-		if b.meta.Thanos.Labels["prometheus_replica"] == "prometheus-mn1-k8s-1" {
-			level.Info(s.logger).Log("msg", "drop replica block", "block", id)
-			if err := s.removeBlock(id); err != nil {
-				level.Warn(s.logger).Log("msg", "error in dropping replica block", "block", id, "err", err)
-			}
-		}
-	}
-
 	return nil
 }
 
