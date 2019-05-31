@@ -721,6 +721,8 @@ func debugFoundBlockSetOverview(logger log.Logger, mint, maxt int64, lset labels
 
 // Series implements the storepb.StoreServer interface.
 func (s *BucketStore) Series(req *storepb.SeriesRequest, srv storepb.Store_SeriesServer) (err error) {
+	fmt.Printf("[DEBUG] Series request: %+v\n", *req)
+
 	{
 		span, _ := tracing.StartSpan(srv.Context(), "store_query_gate_ismyturn")
 		err := s.queryGate.IsMyTurn(srv.Context())

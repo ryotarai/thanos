@@ -181,6 +181,14 @@ func (s *ProxyStore) Series(r *storepb.SeriesRequest, srv storepb.Store_SeriesSe
 			seriesCtx, closeSeries := context.WithCancel(gctx)
 			defer closeSeries()
 
+			mint, maxt := st.TimeRange()
+			if r.MinTime < mint {
+				r.MinTime = mint
+			}
+			if r.MaxTime > maxt {
+				r.MaxTime = maxt
+			}
+
 			sc, err := st.Series(seriesCtx, r)
 			if err != nil {
 				storeID := fmt.Sprintf("%v", storepb.LabelsToString(st.Labels()))
